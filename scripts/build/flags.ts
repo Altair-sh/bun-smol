@@ -71,7 +71,9 @@ export const cpuTargetFlags: Flag[] = [
     desc: "ARM64 Windows: ARMv8-A base + CRC, generic tuning (clang-cl prefix required)",
   },
   {
-    flag: "-march=nehalem",
+    // BEGIN FORK-BUN-SMOL
+    flag: "-march=native",
+    // END FORK-BUN-SMOL
     when: c => c.x64,
     desc: "x64: Nehalem (2008) — no AVX, broadest compatibility",
   },
@@ -1242,6 +1244,11 @@ export const linkerFlags: Flag[] = [
     // 2.2.5/2.17 compat version (or a raw syscall) so the binary's verneed
     // never exceeds the floor.
     flag: [
+      "acosf",
+      "asinf",
+      "atan2f",
+      "cosh",
+      "sinh",
       "exp",
       "exp2",
       "expf",

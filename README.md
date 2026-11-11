@@ -1,3 +1,50 @@
+# bun-smol
+
+A fork of [Bun](https://github.com/oven-sh/bun) built to be small: the `bun` executable is **51 MB**, against 104 MB for the official release and 85 MB for Arch Linux's package. The original README follows [below](#original-readme).
+
+## What's different
+
+- **Optimized for size:** C/C++ at `-Os` (`--buildType=MinSizeRel`), Rust at `opt-level = "z"`.
+- **Built for the CPU it's built on** (`-march=native`). Change it in `scripts/build/flags.ts` (`-march=x86-64-v3`, for example) to build binaries for other machines.
+- **Runs on older glibc:** the functions glibc 2.43 and 2.44 gave new versions (`acosf`, `asinf`, `atan2f`, `cosh`, `sinh`) are bound to their old ones.
+- **Builds with `MinSizeRel`:** fixes an undefined-symbol link error (`generateNativeModule_UTF8Validate`).
+- **No `bun check`, `bun fmt` or `bun lint`.** In a build with `--canary=off` the type checker, formatter and linter are disabled with simple `if !canry: return false` check and compiler removes them as unused code (about 17 MB).
+
+A build with a local WebKit links the system's ICU (`libicu*.so`) and `libstdc++` dynamically, so the machine that runs it needs them. Check which glibc a binary needs with `objdump -T build/release-local/bun | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1`, and which glibc a machine has with `ldd --version`.
+
+## Building (Arch Linux)
+
+```sh
+# Install build dependencies. Yes, bun depends on bun: it contains the build system that builds bun.
+sudo pacman -S --needed base-devel cmake git go libiconv libtool make ninja pkg-config python rustup sed unzip \
+    ruby ruby-stdlib ruby-erb llvm clang lld nasm bun
+
+# Install the Rust toolchain manually, because rustup's automatic install fails on this one.
+# The version is in rust-toolchain.toml.
+# Run this outside the repository, so rust-toolchain.toml doesn't trigger an automatic install.
+rustup toolchain install nightly-2026-09-15 --profile minimal --component rust-src,rustfmt,clippy,llvm-tools
+
+# Clone Bun's fork of WebKit to compile it locally.
+# By default bun build:release downloads a prebuilt one, which includes staticly linked libicu and libstdc++.
+# WEBKIT_VERSION is in scripts/build/deps/webkit.ts.
+WEBKIT_VERSION=d6375c72affe0f70222cdcb45012b10f0bf3a9d5
+git clone https://github.com/oven-sh/WebKit vendor/WebKit --depth 1 -b "autobuild-$WEBKIT_VERSION"
+
+# Build bun.
+# :local enables compilation with vendor/WebKit source instead of pre-build WebKit
+# --canary=off compiles out fmt, check and lint.
+bun run build:release:local --buildType=MinSizeRel --canary=off
+# The executable is build/release-local/bun.
+
+# Clean up afterwards (the build cache and the Rust toolchain):
+rm -r ~/.bun/build-cache
+rustup toolchain uninstall nightly-2026-09-15
+```
+
+---
+
+<a id="original-readme"></a>
+
 <p align="center">
   <a href="https://bun.com"><img src="https://github.com/user-attachments/assets/50282090-adfd-4ddb-9e27-c30753c6b161" alt="Logo" height=170></a>
 </p>

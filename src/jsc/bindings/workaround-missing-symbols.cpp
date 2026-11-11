@@ -113,6 +113,13 @@ BUN_SYMVER(log2f, BUN_GLIBC_BASE);
 BUN_SYMVER(logf, BUN_GLIBC_BASE);
 BUN_SYMVER(pow, BUN_GLIBC_BASE);
 BUN_SYMVER(powf, BUN_GLIBC_BASE);
+// BEGIN FORK-BUN-SMOL
+BUN_SYMVER(acosf, BUN_GLIBC_BASE);
+BUN_SYMVER(asinf, BUN_GLIBC_BASE);
+BUN_SYMVER(atan2f, BUN_GLIBC_BASE);
+BUN_SYMVER(cosh, BUN_GLIBC_BASE);
+BUN_SYMVER(sinh, BUN_GLIBC_BASE);
+// END FORK-BUN-SMOL
 
 #if defined(__x86_64__) || defined(__aarch64__)
 #define BUN_WRAP_GLIBC_SYMBOL(symbol) __wrap_##symbol
@@ -131,6 +138,11 @@ float BUN_WRAP_GLIBC_SYMBOL(powf)(float, float);
 double BUN_WRAP_GLIBC_SYMBOL(pow)(double, double);
 double BUN_WRAP_GLIBC_SYMBOL(log)(double);
 double BUN_WRAP_GLIBC_SYMBOL(log2)(double);
+float BUN_WRAP_GLIBC_SYMBOL(acosf)(float);
+float BUN_WRAP_GLIBC_SYMBOL(asinf)(float);
+float BUN_WRAP_GLIBC_SYMBOL(atan2f)(float, float);
+double BUN_WRAP_GLIBC_SYMBOL(cosh)(double);
+double BUN_WRAP_GLIBC_SYMBOL(sinh)(double);
 int BUN_WRAP_GLIBC_SYMBOL(fcntl64)(int, int, ...);
 ssize_t BUN_WRAP_GLIBC_SYMBOL(getrandom)(void*, size_t, unsigned int);
 
@@ -143,6 +155,12 @@ double __wrap_exp2(double x) { return exp2(x); }
 double __wrap_pow(double x, double y) { return pow(x, y); }
 double __wrap_log(double x) { return log(x); }
 double __wrap_log2(double x) { return log2(x); }
+// glibc 2.43 (acosf, asinf, atan2f) and 2.44 (cosh, sinh) added new default versions; the 2.2.5 ones remain.
+float __wrap_acosf(float x) { return acosf(x); }
+float __wrap_asinf(float x) { return asinf(x); }
+float __wrap_atan2f(float y, float x) { return atan2f(y, x); }
+double __wrap_cosh(double x) { return cosh(x); }
+double __wrap_sinh(double x) { return sinh(x); }
 
 // glibc 2.24 added quick_exit@GLIBC_2.24 (the version that correctly skips
 // thread_local dtors per C11/C++11; the older @2.10 version ran them — see

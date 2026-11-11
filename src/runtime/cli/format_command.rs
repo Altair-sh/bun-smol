@@ -11,6 +11,12 @@ use bun_bunfig::Above;
 
 pub(crate) struct FormatCommand;
 
+// BEGIN FORK-BUN-SMOL
+/// False leaves the formatter out of the binary: `exec` returns before it reaches
+/// `bun_lint_driver::fmt`, so the linker drops it.
+const IS_ENABLED: bool = bun_core::Environment::IS_CANARY;
+// END FORK-BUN-SMOL
+
 pub(crate) use bun_lint_driver::fmt::cli::HELP;
 
 /// True if `bun fmt --run-prettier-tests` exists, for `test/cli/format/conformance.test.ts`.
@@ -33,6 +39,12 @@ impl FormatCommand {
 
     /// `args` is everything after `format`.
     pub(crate) fn exec(ctx: &mut ContextData, args: &[&ZStr]) -> ! {
+// BEGIN FORK-BUN-SMOL
+        if !IS_ENABLED {
+            bun_core::Output::err_generic("{}", ("Formatting is not included in this build of Bun",));
+            Global::exit(1);
+        }
+// END FORK-BUN-SMOL
         // `--debug-check-svelte <before> <after> ..`, for `test/cli/format/svelte/svelte.test.ts`.
         // Prints one line per pair.
         if HAS_TEST_RUNNER

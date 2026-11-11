@@ -155,6 +155,9 @@ codegen-units = 1
 debug = "line-tables-only"
 strip = "none"
 panic = "abort"
+# BEGIN FORK-BUN-SMOL
+opt-level = "z" # optimize rust objects for size. works better than "s" for this project
+# END FORK-BUN-SMOL
 
 [profile.dev]
 panic = "abort"

@@ -19,6 +19,18 @@ use core::time::Duration;
 
 pub(crate) struct CheckCommand;
 
+// BEGIN FORK-BUN-SMOL
+/// False leaves the type checker out of the binary: every entry point below returns before it
+/// reaches `bun_sema_driver`, so nothing references it and the linker drops it.
+pub(crate) const IS_ENABLED: bool = bun_core::Environment::IS_CANARY;
+
+const NOT_INCLUDED: &str = "Type checking is not included in this build of Bun";
+
+fn report_not_included() {
+    Output::err_generic("{}", (NOT_INCLUDED,));
+}
+// END FORK-BUN-SMOL
+
 #[derive(Default)]
 struct Options {
     /// The paths, `--project`, `--build`, `--strict`, `--target es2022` and so on.
@@ -424,6 +436,12 @@ const HAS_TYPESCRIPT_TEST_RUNNER: bool =
 
 impl CheckCommand {
     pub(crate) fn exec(args: &[&ZStr]) -> ! {
+// BEGIN FORK-BUN-SMOL
+        if !IS_ENABLED {
+            report_not_included();
+            Global::exit(1);
+        }
+// END FORK-BUN-SMOL
         if HAS_TYPESCRIPT_TEST_RUNNER
             && let [first, rest @ ..] = args
             && first.as_bytes() == b"--run-typescript-tests"
@@ -438,6 +456,12 @@ impl CheckCommand {
     /// `bun --check` without an entry point behaves like `bun check` without arguments. `bun` has
     /// already parsed its own arguments.
     pub(crate) fn exec_without_arguments() -> ! {
+// BEGIN FORK-BUN-SMOL
+        if !IS_ENABLED {
+            report_not_included();
+            Global::exit(1);
+        }
+// END FORK-BUN-SMOL
         Self::exec_with(&Options {
             command_line: CommandLine {
                 project: tsconfig_override().map(<[u8]>::to_vec),
@@ -545,6 +569,12 @@ impl<'a> EntryPoint<'a> {
 /// Type-checks `entry_points` and everything they import before they run. Returns true if there are
 /// no errors. Errors go to stderr, so stdout stays the program's.
 pub(crate) fn check_before(entry_points: &[EntryPoint], before_read: Option<BeforeRead>) -> bool {
+// BEGIN FORK-BUN-SMOL
+    if !IS_ENABLED {
+        report_not_included();
+        return false;
+    }
+// END FORK-BUN-SMOL
     let cwd = working_directory();
     // `--loader`, `--conditions`
     let args = bun_options_types::context::try_get().map(|ctx| &ctx.args);
@@ -603,6 +633,11 @@ fn has_types_with(by_extension: &[(Vec<u8>, ScriptKind)], path: &[u8]) -> bool {
 pub(crate) fn watching(vm: &bun_jsc::virtual_machine::VirtualMachine) -> Option<BeforeRead> {
     use bun_paths::{platform::Auto, resolve_path::join_abs_string};
     use bun_sema_driver::host::to_native;
+// BEGIN FORK-BUN-SMOL
+    if !IS_ENABLED {
+        return None;
+    }
+// END FORK-BUN-SMOL
     let (watch, cwd) = (vm.watcher_for_threads()?, working_directory());
     Some(Box::new(move |path| {
         if !bun_core::strings::contains(path, b"/node_modules/") {
@@ -639,6 +674,12 @@ pub(crate) fn check_for_bun_build(checked: TypeChecked, log: &mut bun_ast::Log) 
 /// Doesn't reread the bundle's files (`sources`). Adds the errors to `log`, which the build reports
 /// like its own. Runs on the bundler's thread.
 fn check_for_build(checked: TypeChecked, log: &mut bun_ast::Log, shows_progress: bool) -> bool {
+// BEGIN FORK-BUN-SMOL
+    if !IS_ENABLED {
+        log.add_error_fmt(None, bun_ast::Loc::EMPTY, format_args!("{NOT_INCLUDED}"));
+        return false;
+    }
+// END FORK-BUN-SMOL
     let TypeChecked {
         cwd,
         tsconfig,
@@ -837,6 +878,12 @@ fn imports_of_page(cwd: &[u8], page: &[u8]) -> Vec<Vec<u8>> {
 /// Type-checks the project containing the working directory, like `bun check`, before running one
 /// of its scripts or `bun bake`'s app. For `before_read`, see `watching`.
 pub(crate) fn check_project_before(before_read: Option<BeforeRead>) -> bool {
+// BEGIN FORK-BUN-SMOL
+    if !IS_ENABLED {
+        report_not_included();
+        return false;
+    }
+// END FORK-BUN-SMOL
     let provided = Provided {
         before_read,
         ..Default::default()

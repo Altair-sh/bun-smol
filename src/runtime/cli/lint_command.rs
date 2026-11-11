@@ -345,6 +345,13 @@ impl LintCommand {
 
     /// `args` is what follows `lint`.
     pub(crate) fn exec(ctx: &mut ContextData, args: &[&ZStr]) -> ! {
+// BEGIN FORK-BUN-SMOL
+        // actually disable this module, so compiler removes it from executable as unused code
+        if !IS_ENABLED {
+            Output::err_generic("{}", ("Linting is not included in this build of Bun",));
+            Global::exit(1);
+        }
+// END FORK-BUN-SMOL
         let args: Vec<&[u8]> = args.iter().map(|arg| arg.as_bytes()).collect();
         if HAS_TEST_RUNNER && let [b"--run-eslint-tests", rest @ ..] = &args[..] {
             run_and_exit(b"lint", None, |environment| Outcome {
